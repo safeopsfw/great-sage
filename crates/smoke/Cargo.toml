@@ -1,0 +1,13 @@
+[package]
+name = "friday-smoke"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "friday-smoke"
+path = "src/main.rs"
+
+[dependencies]
+candle-core.workspace = true
+anyhow.workspace = true

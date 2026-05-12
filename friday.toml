@@ -1,0 +1,60 @@
+# Friday — Master Runtime Configuration
+# See docs/BLUEPRINT.md Section 19 for the full workspace structure.
+
+[general]
+name = "Friday"
+version = "0.1.0"
+log_level = "info"                       # trace | debug | info | warn | error
+
+[inference]
+model_path = "models/llama-3.2-3b-instruct-q4_k_m.gguf"
+device = "cpu"                            # "cpu" | "cuda"
+gpu_layers = 0                            # number of layers to offload to GPU (0 = all CPU)
+
+[inference.sampling]
+temperature = 0.7
+top_p = 0.9
+top_k = 0
+repeat_penalty = 1.1
+repeat_last_n = 64
+
+[tokenizer]
+path = "models/llama-3.2-3b-instruct-q4_k_m.gguf"  # or a tokenizer.json path
+
+[memory]
+data_dir = "~/.friday"                    # %APPDATA%\Friday on Windows
+summary_count = 20                        # L2 summaries to include in context
+top_k = 10                                # L3 vector search results
+embedding_model = "models/bge-small-en-v1.5"
+
+[agent]
+max_iterations = 8                        # hard cap on ReAct loop steps
+
+[tools]
+allowed_paths = []                        # filesystem roots the model may access
+workspace = "~/.friday/workspace"         # sandboxed write target
+
+[tools.web]
+search_provider = "duckduckgo"            # "duckduckgo" | "brave" | "tavily"
+fetch_timeout_secs = 10
+fetch_max_bytes = 5_242_880               # 5 MB
+
+[router]
+adapter_dir = "adapters"
+default_adapter = "friday-personal"
+confidence_threshold = 0.75
+
+[voice]
+wake_word_model = "models/wakeword_friday.onnx"
+stt_model = "models/whisper-base.en.bin"
+tts_model = "models/piper/en_US-libritts.onnx"
+vad_threshold = 0.5
+
+[training]
+checkpoint_dir = "checkpoints"
+data_dir = "data"
+
+[scheduler]
+weekly_refresh = true
+refresh_day = "Sunday"
+refresh_hour = 3                          # 3 AM local

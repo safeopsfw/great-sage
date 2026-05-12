@@ -1,0 +1,22 @@
+[package]
+name = "friday-cli"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "friday-cli"
+path = "src/main.rs"
+
+[dependencies]
+friday-inference = { path = "../inference" }
+friday-tokenizer = { path = "../tokenizer" }
+friday-memory = { path = "../memory" }
+friday-agent = { path = "../agent" }
+friday-tools = { path = "../tools" }
+friday-training = { path = "../training" }
+clap.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
