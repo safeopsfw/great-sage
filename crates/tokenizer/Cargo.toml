@@ -1,5 +1,5 @@
-[package]
-name = "friday-tokenizer"
+﻿[package]
+name = "great-sage-tokenizer"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true

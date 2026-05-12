@@ -1,12 +1,12 @@
-# download_models.ps1 — Download pre-trained model weights for Friday.
+﻿# download_models.ps1 — Download pre-trained model weights for Great Sage.
 #
-# Run from the friday/ root directory:
+# Run from the Great Sage/ root directory:
 #   .\scripts\download_models.ps1
 
 $ErrorActionPreference = "Stop"
 $ModelsDir = Join-Path $PSScriptRoot "..\models"
 
-Write-Host "Friday Model Downloader" -ForegroundColor Cyan
+Write-Host "Great Sage Model Downloader" -ForegroundColor Cyan
 Write-Host "=======================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -16,7 +16,7 @@ Write-Host ""
 #   2. bge-small-en-v1.5/                  (~80 MB)
 #   3. whisper-base.en.bin                  (~150 MB)
 #   4. piper/en_US-libritts.onnx           (~60 MB)
-#   5. wakeword_friday.onnx                (~1 MB)
+#   5. wakeword_great_sage.onnx                (~1 MB)
 
 Write-Host "Model directory: $ModelsDir"
 Write-Host ""

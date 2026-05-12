@@ -1,4 +1,4 @@
-//! Friday Memory System
+﻿//! Great Sage Memory System
 //!
 //! Phase 3: Four-layer memory architecture:
 //! - L1: Live KV cache (thin wrapper over inference KV cache)

@@ -1,5 +1,5 @@
-[package]
-name = "friday-tools"
+﻿[package]
+name = "great-sage-tools"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true

@@ -1,11 +1,11 @@
-# bench.ps1 — Run inference benchmarks.
+﻿# bench.ps1 — Run inference benchmarks.
 #
 # Usage:
 #   .\scripts\bench.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Friday Benchmark Suite" -ForegroundColor Cyan
+Write-Host "Great Sage Benchmark Suite" -ForegroundColor Cyan
 Write-Host "=====================" -ForegroundColor Cyan
 Write-Host ""
 

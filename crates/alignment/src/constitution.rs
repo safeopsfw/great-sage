@@ -1,4 +1,4 @@
-//! The constitution — Friday's rule list.
+﻿//! The constitution — Great Sage's rule list.
 //!
 //! A set of behavioral rules that the self-critique loop checks
 //! every response against before speaking.

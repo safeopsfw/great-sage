@@ -1,4 +1,4 @@
-//! Friday Voice Pipeline
+﻿//! Great Sage Voice Pipeline
 //!
 //! Phase 7: Full voice I/O pipeline:
 //! - Audio capture / playback via cpal

@@ -1,9 +1,9 @@
-//! friday.toml → typed config structs.
+﻿//! great-sage.toml → typed config structs.
 
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct FridayConfig {
+pub struct GreatSageConfig {
     pub general: GeneralConfig,
     pub inference: InferenceConfig,
     pub memory: MemoryConfig,
@@ -38,8 +38,8 @@ pub struct AgentConfig {
     pub max_iterations: usize,
 }
 
-pub fn load_config(path: &str) -> anyhow::Result<FridayConfig> {
+pub fn load_config(path: &str) -> anyhow::Result<GreatSageConfig> {
     let content = std::fs::read_to_string(path)?;
-    let config: FridayConfig = toml::from_str(&content)?;
+    let config: GreatSageConfig = toml::from_str(&content)?;
     Ok(config)
 }

@@ -1,4 +1,4 @@
-//! Friday Tool Registry
+﻿//! Great Sage Tool Registry
 //!
 //! Phase 4 + 5: Tool trait, registry, and built-in tools:
 //! - Core: get_time, system_info, files, notes

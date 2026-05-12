@@ -1,7 +1,7 @@
-//! Embedding model wrapper.
+﻿//! Embedding model wrapper.
 //!
 //! V1: bge-small-en-v1.5 (33M params, 384-d output, <10ms on CPU).
-//! Future: friday-embed from Track A replaces this.
+//! Future: great-sage-embed from Track A replaces this.
 
 pub struct Embedder {
     // TODO: candle model for embedding

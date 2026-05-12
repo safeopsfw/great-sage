@@ -1,4 +1,4 @@
-//! friday-cli — command-line interface for Friday.
+﻿//! great-sage-cli — command-line interface for Great Sage.
 //!
 //! Subcommands:
 //! - chat:     interactive REPL or single-shot prompt
@@ -14,8 +14,8 @@ mod refresh;
 mod diagnose;
 
 #[derive(Parser)]
-#[command(name = "friday-cli")]
-#[command(about = "Friday personal AI assistant — CLI interface")]
+#[command(name = "great-sage-cli")]
+#[command(about = "Great Sage personal AI assistant — CLI interface")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

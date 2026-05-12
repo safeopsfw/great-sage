@@ -1,4 +1,4 @@
-//! Friday Training Engine
+﻿//! Great Sage Training Engine
 //!
 //! Phases 6, 9, 10, 11: Covers pretraining (nanoGPT, MoE),
 //! LoRA fine-tuning, weekly self-learning refresh,

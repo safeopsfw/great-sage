@@ -1,4 +1,4 @@
-# Friday — A Personal AI Blueprint for One Laptop, Built in Rust
+﻿# Great Sage — A Personal AI Blueprint for One Laptop, Built in Rust
 
 See the full blueprint at the project root: [BLUEPRINT.md](../../BLUEPRINT.md)
 

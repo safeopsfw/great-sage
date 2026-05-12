@@ -1,4 +1,4 @@
-//! Friday Inference Engine
+﻿//! Great Sage Inference Engine
 //!
 //! Phase 1: GGUF model loading, forward pass, KV cache management,
 //! sampling strategies, chat templates, and token streaming.

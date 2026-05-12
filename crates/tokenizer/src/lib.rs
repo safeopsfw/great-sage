@@ -1,4 +1,4 @@
-//! Friday Tokenizer
+﻿//! Great Sage Tokenizer
 //!
 //! Phase 2: Tokenizer trait with two implementations:
 //! - Path A: HuggingFace `tokenizers` crate wrapper (production)
