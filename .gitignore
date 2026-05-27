@@ -46,6 +46,9 @@ services/orchestrator/target/
 # Go build output
 services/gateway/bin/
 
+# Binary tools (downloaded separately via setup_environment.ps1)
+tools/ffmpeg/bin/*.exe
+
 # HuggingFace cache
 hf_cache/
 
