@@ -1,0 +1,17 @@
+# Backup rotation schedule for all five databases.
+# Uncomment when implementing Part 17 (Operations and Monitoring).
+
+# [schedule]
+# daily_hour        = 3
+# daily_retain_days = 30
+# weekly_day        = 0
+# weekly_retain_wks = 8
+
+# [targets]
+# databases = [
+#   "knowledge.db",
+#   "progress.db",
+#   "memory.db",
+#   "system.db",
+#   "verification.db"
+# ]

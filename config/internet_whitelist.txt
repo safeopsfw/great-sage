@@ -1,0 +1,5 @@
+﻿# Approved domains for the Go internet whitelist enforcer.
+# One domain per line. Populated in Part 9 (Network, Browser and Screen).
+learn.microsoft.com
+docs.microsoft.com
+comptia.org

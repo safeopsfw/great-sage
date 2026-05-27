@@ -1,0 +1,44 @@
+# ── PyTorch index (must come first — PyPI only has CPU-only wheels) ───────────
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# ── Core ML framework ─────────────────────────────────────────────────────────
+torch==2.3.0+cu121
+torchvision==0.18.0+cu121
+torchaudio==2.3.0+cu121
+
+# ── Model loading and quantization ────────────────────────────────────────────
+transformers==4.42.4
+accelerate==0.33.0
+bitsandbytes==0.43.3
+autoawq==0.2.5
+peft==0.12.0
+trl==0.9.6
+huggingface-hub==0.24.5
+
+# ── Speech recognition ────────────────────────────────────────────────────────
+vosk==0.3.45
+# faster-whisper reserved — Vosk is the active STT engine (see blueprint)
+faster-whisper==1.0.3
+
+# ── Embeddings and vector search ──────────────────────────────────────────────
+sentence-transformers==3.0.1
+faiss-cpu==1.8.0
+
+# ── gRPC ──────────────────────────────────────────────────────────────────────
+grpcio==1.65.1
+grpcio-tools==1.65.1
+protobuf==5.27.2
+
+# ── Web automation (Part 9) ───────────────────────────────────────────────────
+playwright==1.45.0
+
+# ── Claude API (Part 11) ──────────────────────────────────────────────────────
+anthropic==0.34.1
+
+# ── Image and document processing ────────────────────────────────────────────
+pillow==10.4.0
+pytesseract==0.3.13
+
+# ── Visual output (Part 12) ───────────────────────────────────────────────────
+matplotlib==3.9.1
+reportlab==4.2.2

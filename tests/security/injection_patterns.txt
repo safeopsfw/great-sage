@@ -1,0 +1,2 @@
+﻿# Known injection strings for testing the input filter.
+# Populated in Part 16 (Security Layer).

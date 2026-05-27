@@ -1,35 +1,64 @@
-# Build artifacts
-/target/
+﻿# Model weights (10-30 GB, binary)
+models/
 
-# Pre-trained model weights (large binary files)
-/models/*.gguf
-/models/*.bin
-/models/*.onnx
-/models/*.safetensors
-/models/bge-small-en-v1.5/
-/models/piper/
+# Database files (personal data + large binary)
+data/*.db
+data/*.db-shm
+data/*.db-wal
 
-# LoRA adapter weights
-/adapters/*.safetensors
+# FAISS index (regenerated from knowledge.db)
+faiss/
 
-# Training data shards
-/data/tinyshakespeare/
-/data/wikitext/
-/data/correction_queue/
-/data/incoming/
+# Automated backups (managed separately)
+backup/
 
-# Training checkpoints
-/checkpoints/
+# Runtime logs (rotated automatically)
+logs/
 
-# User data
-/.friday/
+# Drop zone files (transient)
+incoming/*.pdf
+incoming/*.txt
+incoming/*.docx
+incoming/*.md
 
-# IDE
+# Training output (uploaded to Colab, not stored in Git)
+training/merged/
+training/deployed/
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Rust build output
+target/
+services/orchestrator/target/
+
+# Go build output
+services/gateway/bin/
+
+# HuggingFace cache
+hf_cache/
+
+# OS and editor artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
 .idea/
-.vscode/
+.vscode/settings.json
 *.swp
 *.swo
 
-# OS
-Thumbs.db
-.DS_Store
+# Secrets (never commit)
+.env
+*.env
+secrets.toml

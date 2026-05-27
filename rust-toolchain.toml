@@ -1,3 +1,6 @@
 [toolchain]
-channel = "1.78"
-components = ["rustfmt", "clippy"]
+# Updated from blueprint-specified 1.78 to 1.95.0 (latest stable as of 2026-05-24).
+# Reason: crate ecosystem (hashbrown, serde_json, chrono transitive deps) now
+# requires edition2024 which is only stable in Rust >= 1.85. 1.78 is incompatible
+# with current dependency versions.
+channel = "1.95.0"

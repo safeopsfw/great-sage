@@ -1,0 +1,19 @@
+# Token budget allocation for the 4096-token context window.
+# Total allocated: 3350. Headroom: 746.
+# Uncomment and adjust values when implementing Part 7 (Orchestrator).
+
+# [great_sage]
+# system_prompt    = 500
+# memory_working   = 800
+# memory_episodic  = 300
+# knowledge_chunks = 600
+# tool_scratchpad  = 400
+# response_reserve = 750
+
+# [professor]
+# system_prompt    = 600
+# memory_working   = 600
+# memory_episodic  = 300
+# knowledge_chunks = 800
+# tool_scratchpad  = 300
+# response_reserve = 750

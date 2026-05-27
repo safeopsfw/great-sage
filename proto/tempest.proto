@@ -1,0 +1,611 @@
+// tempest.proto — Great Sage / Tempest gRPC Contract
+// Single source of truth for all inter-service communication.
+// If a method is not in this file, it does not exist.
+//
+// VERSIONING RULES — READ BEFORE EDITING
+//
+//   SAFE (backward compatible):
+//     ✓ Add a new rpc method to an existing service
+//     ✓ Add a new message type
+//     ✓ Add a new field to an existing message (assign a NEW field number)
+//     ✓ Add a new service block
+//
+//   NOT SAFE (breaks existing callers):
+//     ✗ Remove or rename an existing rpc method
+//     ✗ Remove or rename an existing message field
+//     ✗ Change a field's type
+//     ✗ Reuse a field number that was previously used (even if deleted)
+//
+//   When you add a new method:
+//     1. Add it to tempest.proto
+//     2. Run scripts\generate_proto.ps1
+//     3. cargo build  (Rust regenerates automatically via build.rs)
+//     4. Implement the handler in the receiver service
+//     5. The caller can now use it — all without touching existing methods
+//
+// After editing: run scripts\generate_proto.ps1 and cargo build
+// Ports: 50051 (Rust Orchestrator) · 50052 (Python Inference) — see config\grpc_ports.toml
+
+syntax = "proto3";
+package tempest;
+option go_package = "great-sage/gateway/proto;proto";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SERVICE 1 — GatewayToOrchestrator
+//  Caller:   Go HTTP/WebSocket server  (services/gateway)       binds :8000/:8001
+//  Receiver: Rust Orchestrator         (services/orchestrator)  binds :50051
+//  Sections: §30 Session Lifecycle · §31 Intent Router · §32 Context Assembler
+//            §34 Audit Log · §39 HTTP/WS Server
+// ═══════════════════════════════════════════════════════════════════════════════
+
+service GatewayToOrchestrator {
+  // User opens the app — Rust creates a session, loads memory, returns greeting
+  rpc StartSession    (StartSessionRequest)   returns (StartSessionResponse);
+
+  // User sends a message — Rust processes it and streams tokens back one by one
+  rpc SendMessage     (SendMessageRequest)    returns (stream TokenChunk);
+
+  // User closes the app — Rust saves summary, writes episodic memory, clears state
+  rpc EndSession      (EndSessionRequest)     returns (EndSessionResponse);
+
+  // Dashboard polls this every 5 seconds for VRAM, latency, chunk count, backup status
+  rpc GetSystemStatus (SystemStatusRequest)   returns (SystemStatusResponse);
+
+  // Admin view of security events from the audit log (§34)
+  rpc GetAuditLog     (AuditLogRequest)       returns (AuditLogResponse);
+
+  // User drops a file into incoming\ — Go notifies Rust to queue it for ingestion (§10)
+  rpc NotifyFileAdded (FileAddedRequest)      returns (FileAddedResponse);
+}
+
+message StartSessionRequest {
+  string client_id   = 1; // browser fingerprint or device ID — used for logging
+  string device_type = 2; // "browser" | "phone" | "desktop" — affects UI hints
+}
+message StartSessionResponse {
+  string session_id = 1; // UUID — must be passed in all subsequent calls this session
+  string greeting   = 2; // continuity greeting generated from episodic memory (§25)
+  bool   ok         = 3; // false = session failed to start, check error field
+  string error      = 4; // populated only when ok = false
+}
+
+message SendMessageRequest {
+  string session_id   = 1; // UUID from StartSession — ties this to the active session
+  string text         = 2; // raw user input — sanitised by Rust before use (§73)
+  string intent_hint  = 3; // optional override from client UI ("quiz" | "teach" | "") — empty = auto-classify
+}
+message TokenChunk {
+  string token    = 1; // one token of the model's response — send to browser as it arrives
+  bool   is_final = 2; // true on the last chunk — browser can stop the streaming indicator
+  string full_text = 3; // populated only on the final chunk — full assembled response for logging
+}
+
+message EndSessionRequest {
+  string session_id = 1; // UUID from StartSession
+}
+message EndSessionResponse {
+  string summary     = 1; // one-paragraph session summary written to episodic memory (§25)
+  int32  turns       = 2; // number of conversation turns in this session
+  bool   ok          = 3;
+}
+
+message SystemStatusRequest {} // no fields — caller just wants the current snapshot
+
+message SystemStatusResponse {
+  float  vram_used_gb         = 1;  // current GPU memory in use (RTX 3050, max 4.0)
+  float  vram_free_gb         = 2;  // available GPU memory
+  int32  knowledge_chunk_count = 3; // total chunks in knowledge.db (§21)
+  string last_backup_at       = 4;  // ISO timestamp of last successful backup (§23)
+  float  faiss_p95_latency_ms = 5;  // 95th percentile FAISS query latency (§16)
+  string active_model         = 6;  // "great_sage" | "professor" | "none"
+  bool   all_services_ok      = 7;  // false if any service failed its last health check
+  float  context_assembly_ms  = 8;  // P95 context assembly time (§32)
+}
+
+message AuditLogRequest {
+  string since_timestamp = 1; // ISO timestamp — return events after this time
+  int32  limit           = 2; // max rows to return — default 100
+}
+message AuditLogResponse {
+  repeated AuditEntry entries = 1;
+}
+message AuditEntry {
+  string event_id     = 1; // UUID for this event
+  string timestamp    = 2; // ISO timestamp
+  string type         = 3; // "injection_attempt" | "rate_limit" | "vram_spike" | "off_whitelist" | ...
+  string severity     = 4; // "info" | "warn" | "block" | "critical"
+  string action_taken = 5; // what Rust did — "sanitised" | "blocked" | "rate_limited" | "logged"
+  string session_id   = 6; // which session this event came from
+}
+
+message FileAddedRequest {
+  string filename  = 1; // original filename — e.g. "SC-200_objectives.pdf"
+  string path      = 2; // full path inside incoming\ — e.g. "D:\Project LLM\great sage\incoming\SC-200_objectives.pdf"
+  string file_type = 3; // detected MIME or extension — "pdf" | "docx" | "mp4" | "png" | ...
+}
+message FileAddedResponse {
+  bool   queued  = 1; // true = added to ingestion queue
+  string job_id  = 2; // UUID to track this ingestion job's progress
+  string error   = 3; // populated if queued = false
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SERVICE 2 — OrchestratorToInference
+//  Caller:   Rust Orchestrator         (services/orchestrator)
+//  Receiver: Python Inference Service  (services/inference)    binds :50052
+//  Sections: §5 Inference Service · §6 AWQ Quantization · §8 VRAM Manager
+//            §9 KV Cache · §15 Embeddings · §18 HyDE · §35 Vosk STT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+service OrchestratorToInference {
+  // Send assembled 6-slot prompt, receive token stream (§32 Context Assembler builds the prompt)
+  rpc Generate      (GenerateRequest)     returns (stream GenerateChunk);
+
+  // Embed one text string into a 768-dim vector (used for HyDE query embedding §18)
+  rpc Embed         (EmbedRequest)        returns (EmbedResponse);
+
+  // Embed a batch of strings — used by the bulk ingestion pipeline (§15)
+  rpc EmbedBatch    (EmbedBatchRequest)   returns (EmbedBatchResponse);
+
+  // Transcribe raw PCM audio bytes via Vosk STT (§35)
+  rpc Transcribe    (TranscribeRequest)   returns (TranscribeResponse);
+
+  // Load a model into VRAM — called by VRAM manager on mode switch (§8)
+  rpc LoadModel     (LoadModelRequest)    returns (LoadModelResponse);
+
+  // Free a model from VRAM before loading another — prevents OOM crashes (§8)
+  rpc UnloadModel   (UnloadModelRequest)  returns (UnloadModelResponse);
+
+  // Rust polls this every 10 seconds for the dashboard and VRAM budget enforcement (§8, §79)
+  rpc GetVRAMStatus (VRAMStatusRequest)   returns (VRAMStatusResponse);
+
+  // Startup check — is GPU visible, model loaded, service alive?
+  rpc HealthCheck   (HealthRequest)       returns (HealthResponse);
+}
+
+message GenerateRequest {
+  string session_id          = 1; // UUID — for logging and KV cache tracking
+  string prompt              = 2; // fully assembled 6-slot context from §32 Context Assembler
+  int32  model_index         = 3; // 0 = Great Sage (general), 1 = Professor (IT certs only)
+  int32  max_tokens          = 4; // hard cap on response length — default 512, max 1024
+  float  temperature         = 5; // 0.1 = factual, 0.7 = conversational — set by intent router §31
+  int32  kv_cache_prefix_len = 6; // tokens at the start of prompt unchanged from last turn
+                                   // Python reuses KV cache for these — saves ~93% compute (§9)
+                                   // 0 = no cache (first turn or after mode/memory switch)
+}
+message GenerateChunk {
+  string token    = 1; // one decoded token string
+  float  logprob  = 2; // log probability of this token — used for confidence scoring (§49 gap detection)
+  bool   is_final = 3; // true on the last token of the response
+}
+
+message EmbedRequest {
+  string text = 1; // text to embed — typically the hypothetical answer (§18 HyDE) or a user query
+}
+message EmbedResponse {
+  repeated float vector = 1; // 768-dim float vector from BGE-M3 — verify length == 768
+  int32          dim    = 2; // always 768 — sanity check field
+}
+
+message EmbedBatchRequest {
+  repeated string texts    = 1; // list of chunk texts from staging\safe\ (§15 batch pipeline)
+  repeated string text_ids = 2; // parallel list of chunk IDs — must be same length as texts
+}
+message EmbedBatchResponse {
+  repeated EmbedVector vectors = 1;
+  bool                 ok      = 2;
+}
+message EmbedVector {
+  string         text_id = 1; // matches the text_id from the request
+  repeated float vector  = 2; // 768-dim float vector
+}
+
+message TranscribeRequest {
+  bytes audio_pcm  = 1; // raw 16kHz mono 16-bit PCM audio bytes (Vosk requirement)
+  int32 sample_rate = 2; // must be 16000 — Vosk is tuned for this rate
+}
+message TranscribeResponse {
+  string               transcript  = 1; // full transcribed text
+  float                confidence  = 2; // overall confidence score 0.0–1.0 from Vosk
+  repeated WordTimestamp words     = 3; // per-word timestamps — used for long file chunking (§11)
+}
+message WordTimestamp {
+  string word      = 1; // the transcribed word
+  float  start_sec = 2; // start time in seconds from beginning of audio clip
+  float  end_sec   = 3; // end time in seconds
+}
+
+message LoadModelRequest {
+  int32  model_index = 1; // 0 = Great Sage, 1 = Professor — no other values valid
+  string model_path  = 2; // absolute path to models\{name}\current\ — from config\paths.toml
+}
+message LoadModelResponse {
+  bool   ok           = 1; // false = model failed to load — check error
+  float  vram_used_gb = 2; // VRAM used after load — Rust verifies this is within budget (§8)
+  string error        = 3; // populated only when ok = false
+}
+
+message UnloadModelRequest {
+  int32 model_index = 1; // 0 or 1 — which model to free from VRAM
+}
+message UnloadModelResponse {
+  bool  ok           = 1;
+  float vram_freed_gb = 2; // how much VRAM was released — logged to system.db vram_log
+}
+
+message VRAMStatusRequest {} // no fields — just return the current snapshot
+
+message VRAMStatusResponse {
+  float              used_gb  = 1; // current VRAM in use across all models
+  float              free_gb  = 2; // available VRAM
+  float              limit_gb = 3; // hard limit (3.8 GB in teaching mode, 2.0 GB in chat mode)
+  repeated ModelVRAM models   = 4; // per-model VRAM breakdown
+}
+message ModelVRAM {
+  int32  index   = 1; // 0 = Great Sage, 1 = Professor
+  string name    = 2; // "great_sage" | "professor"
+  float  vram_gb = 3; // VRAM this model is currently using (0.0 if not loaded)
+  bool   loaded  = 4; // true = model is in VRAM and ready for inference
+}
+
+message HealthRequest {} // no fields
+message HealthResponse {
+  bool   ok      = 1; // false = service is not ready — caller should not send Generate requests
+  string status  = 2; // "ready" | "loading" | "degraded" | "error"
+  string version = 3; // service version string — for logging
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SERVICE 3 — OrchestratorToVoice
+//  Caller:   Rust Orchestrator
+//  Receiver: Python Voice Service  (part of services/inference or dedicated sub-service)
+//  Sections: §36 Wake Word · §37 Piper TTS · §38 Voice Mode FSM
+//            §42 Screen Capture · §43 Active Window Detection
+// ═══════════════════════════════════════════════════════════════════════════════
+
+service OrchestratorToVoice {
+  // Send one sentence of text — receive WAV bytes for immediate audio playback (§37 Piper TTS)
+  // Called once per sentence as Rust detects sentence boundaries in the token stream
+  rpc SynthesizeSentence (SynthRequest)      returns (SynthResponse);
+
+  // Rust opens this stream at startup — Python pushes an event each time wake word is detected (§36)
+  rpc StreamWakeWord     (WakeWordStartReq)  returns (stream WakeWordEvent);
+
+  // Notify voice service of mode change so it can adjust TTS style and VAD sensitivity (§38)
+  rpc SetVoiceMode       (VoiceModeRequest)  returns (VoiceModeResponse);
+
+  // Capture the active window as PNG, run OCR, return the extracted text (§42)
+  rpc CaptureScreen      (CaptureRequest)    returns (CaptureResponse);
+
+  // Return the current foreground window title and its inferred context tag (§43)
+  rpc GetActiveWindow    (WindowRequest)     returns (WindowResponse);
+}
+
+message SynthRequest {
+  string text     = 1; // one complete sentence — never a partial sentence or multi-sentence block
+  string voice_id = 2; // "en_US-lessac-high" (default) — configurable in config\voices.toml
+}
+message SynthResponse {
+  bytes wav_audio   = 1; // raw WAV bytes — played directly to Windows audio device
+  float duration_sec = 2; // duration of the audio clip — used to time the next sentence dispatch
+  bool  ok           = 3;
+  string error       = 4;
+}
+
+message WakeWordStartReq {
+  string model_path = 1; // path to hey_tempest.onnx — voice\wake_word\hey_tempest.onnx
+  float  threshold  = 2; // minimum confidence to trigger — 0.85 default (config: §77)
+}
+message WakeWordEvent {
+  bool   detected   = 1; // always true when this message arrives — stream only sends detections
+  float  confidence = 2; // confidence score from OpenWakeWord (always >= threshold)
+  string timestamp  = 3; // ISO timestamp — logged to system.db for false-positive analysis
+}
+
+message VoiceModeRequest {
+  Mode mode = 1;
+  enum Mode {
+    CHAT     = 0; // Great Sage active — casual, Vosk + Piper on, short VAD timeout
+    TEACHING = 1; // Professor active — longer responses, slower TTS pace, 5-phase loop
+    QUIZ     = 2; // Professor active — short responses, timer per question, score tracking
+  }
+}
+message VoiceModeResponse {
+  bool  ok          = 1;
+  float vram_before = 2; // VRAM before model swap (logged to session_log)
+  float vram_after  = 3; // VRAM after model swap
+}
+
+message CaptureRequest {
+  bool active_window_only = 1; // true = capture only foreground window, false = full screen
+}
+message CaptureResponse {
+  bytes  png_bytes    = 1; // PNG screenshot bytes — stored in system.db as base64 for audit
+  string ocr_text     = 2; // text extracted from the screenshot via Tesseract OCR
+  string window_title = 3; // title of the captured window — included in context
+  bool   ok           = 4;
+  string error        = 5;
+}
+
+message WindowRequest {} // no fields — just return current foreground window
+
+message WindowResponse {
+  string window_title = 1; // raw window title string from Win32 API
+  string context_tag  = 2; // inferred tag — "cert_study_sc200" | "coding" | "udemy_course" | "tryhackme_lab" | "unknown"
+  string app_name     = 3; // process name — "chrome.exe" | "Code.exe" | "msedge.exe" | ...
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SERVICE 4 — OrchestratorToTools
+//  Caller:   Rust Orchestrator (agentic loop dispatcher in §45)
+//  Receiver: Python Tools Service  (services/tools — shares inference container or dedicated)
+//  Sections: §44 Tool Registry · §45 Agentic Loop · §46 Task Planner · §47 Research Agent
+//            §48 Result Injection · §49–§51 Claude API · §52–§55 Visual Output
+//            §56–§60 Active Learning
+// ═══════════════════════════════════════════════════════════════════════════════
+
+service OrchestratorToTools {
+
+  // ── Knowledge tools ────────────────────────────────────────────────────────
+
+  // Search FAISS + knowledge graph for relevant chunks (§16, §19 re-ranking)
+  rpc SearchKnowledge  (SearchKnowledgeReq)  returns (SearchKnowledgeRes);
+
+  // Save new content to the knowledge ingestion pipeline (§51, §58)
+  rpc SaveToKnowledge  (SaveKnowledgeReq)    returns (SaveKnowledgeRes);
+
+  // ── Web tools ──────────────────────────────────────────────────────────────
+
+  // Simple HTTP GET via whitelist fetcher (§40) — returns page text
+  rpc BrowseWeb        (BrowseWebReq)        returns (BrowseWebRes);
+
+  // Full Playwright browser action — click, fill, extract, screenshot (§41)
+  rpc DeepBrowse       (DeepBrowseReq)       returns (DeepBrowseRes);
+
+  // ── Screen tools ───────────────────────────────────────────────────────────
+
+  // Capture screenshot — delegates to Voice service CaptureScreen (§42)
+  rpc TakeScreenshot   (ScreenshotReq)       returns (ScreenshotRes);
+
+  // Capture screen and return OCR text as a tool result (§42)
+  rpc ReadScreen       (ReadScreenReq)       returns (ReadScreenRes);
+
+  // ── Claude API tool ────────────────────────────────────────────────────────
+
+  // Call Claude API with a structured prompt template (§50)
+  // Used by: gap fill (§49), research agent (§47), training data gen (§68)
+  rpc CallClaude       (CallClaudeReq)       returns (CallClaudeRes);
+
+  // ── Visual output tools ────────────────────────────────────────────────────
+
+  // Generate PNG flashcard images via Pillow (§52)
+  rpc GenerateFlashcard (FlashcardReq)       returns (FlashcardRes);
+
+  // Render Mermaid diagram to PNG via Mermaid CLI (§53)
+  rpc GenerateDiagram  (DiagramReq)          returns (DiagramRes);
+
+  // Build interactive mind map HTML + static PNG from knowledge graph (§54)
+  rpc GenerateMindMap  (MindMapReq)          returns (MindMapRes);
+
+  // Generate PDF/HTML study report via reportlab + matplotlib (§55)
+  rpc GenerateReport   (ReportReq)           returns (ReportRes);
+
+  // ── Teaching tools ─────────────────────────────────────────────────────────
+
+  // Generate MCQ quiz questions with per-option explanations (§62)
+  rpc CreateQuiz       (QuizReq)             returns (QuizRes);
+
+  // ── Utility tools ──────────────────────────────────────────────────────────
+
+  // Evaluate a mathematical or logical expression (§44)
+  rpc RunCalculation   (CalcReq)             returns (CalcRes);
+
+  // Read a file — restricted to output\ and incoming\ only (§75 permission system)
+  rpc ReadFile         (ReadFileReq)         returns (ReadFileRes);
+
+  // ── Active learning ────────────────────────────────────────────────────────
+
+  // Trigger the auto-fill pipeline for a specific topic (§58)
+  rpc TriggerAutoFill  (AutoFillReq)         returns (AutoFillRes);
+}
+
+// ── Knowledge messages ──────────────────────────────────────────────────────
+
+message SearchKnowledgeReq {
+  string query       = 1; // the user's question or HyDE-generated hypothetical answer
+  string cert_filter = 2; // optional — limit to a cert: "SC-200" | "AZ-900" | "" = no filter
+  int32  top_k       = 3; // number of results to return — 20 for HyDE feed, 5 for direct use
+}
+message SearchKnowledgeRes {
+  repeated KnowledgeChunk chunks = 1;
+  bool                     ok    = 2;
+}
+message KnowledgeChunk {
+  string chunk_id = 1; // UUID from knowledge.db chunks table
+  string text     = 2; // the chunk content — injected into Context Slot D (§32)
+  float  score    = 3; // relevance score from cross-encoder re-ranker (§19) — higher = more relevant
+  string cert     = 4; // cert tag: "SC-200" | "AZ-900" | "Security+" | "general" | ...
+  string domain   = 5; // domain tag: "sentinel" | "identity" | "network" | ...
+  string source   = 6; // "microsoft_learn" | "comptia" | "claude_generated" | "user_upload" | ...
+}
+
+message SaveKnowledgeReq {
+  string content = 1; // raw text to save — will pass through chunking + embedding pipeline (§13–§16)
+  string cert    = 2; // cert tag for all chunks generated from this content
+  string domain  = 3; // domain tag
+  string source  = 4; // "claude_generated" | "web_fetch" | "playwright" | ...
+  string type    = 5; // "concept" | "quiz" | "flashcard" | "scenario" | "objective"
+}
+message SaveKnowledgeRes {
+  bool   ok           = 1;
+  int32  chunks_saved = 2; // number of chunks created and indexed
+  string job_id       = 3; // UUID for tracking this ingestion job's progress
+  string error        = 4;
+}
+
+// ── Web messages ────────────────────────────────────────────────────────────
+
+message BrowseWebReq {
+  string url = 1; // must be on the 10-domain whitelist — Go service rejects all others (§40)
+}
+message BrowseWebRes {
+  string text  = 1; // extracted plain text from the page
+  string title = 2; // page <title> element
+  bool   ok    = 3;
+  string error = 4; // "domain_not_whitelisted" | "size_exceeded" | "timeout" | ...
+}
+
+message DeepBrowseReq {
+  string url       = 1; // must be on whitelist — Playwright enforces this internally (§41)
+  string action    = 2; // "navigate" | "click" | "fill" | "extract_text" | "screenshot"
+  string selector  = 3; // CSS selector for click/fill actions — empty for navigate/extract
+  string fill_text = 4; // text to fill for "fill" action — empty for other actions
+}
+message DeepBrowseRes {
+  string text           = 1; // extracted text from current page after action
+  bytes  screenshot_png = 2; // populated only when action = "screenshot"
+  bool   ok             = 3;
+  string error          = 4;
+}
+
+// ── Screen messages ─────────────────────────────────────────────────────────
+
+message ScreenshotReq {
+  bool active_window_only = 1; // true = only foreground window
+}
+message ScreenshotRes {
+  bytes  png_bytes  = 1; // PNG bytes of the screenshot
+  bool   ok         = 2;
+  string saved_path = 3; // path where screenshot was archived (system.db or output\)
+}
+
+message ReadScreenReq {
+  bool ocr_only = 1; // true = return only OCR text, false = also return window context
+}
+message ReadScreenRes {
+  string ocr_text     = 1; // text extracted from the screen via Tesseract
+  string window_title = 2; // current foreground window title
+  bool   ok           = 3;
+}
+
+// ── Claude API messages ─────────────────────────────────────────────────────
+
+message CallClaudeReq {
+  string prompt        = 1; // the full prompt — Rust or Python assembles this
+  string template_name = 2; // which prompt template to use (§50):
+                             // "research" | "teaching" | "training_data" | "diagram" | "quiz" | "gap_fill"
+  string purpose       = 3; // human-readable reason for this call — logged to claude_usage_log
+  int32  max_tokens    = 4; // response length cap — default 1024, max 4096
+}
+message CallClaudeRes {
+  string response      = 1; // Claude's full response text
+  int32  input_tokens  = 2; // tokens used in the prompt — logged for cost tracking
+  int32  output_tokens = 3; // tokens in the response — logged for cost tracking
+  bool   ok            = 4;
+  string error         = 5; // "rate_limited" | "api_error" | "timeout" | ...
+}
+
+// ── Visual output messages ───────────────────────────────────────────────────
+
+message FlashcardReq {
+  string topic      = 1; // topic for the flashcard batch — e.g. "Sentinel Analytics Rules"
+  string cert       = 2; // "SC-200" | "AZ-900" | "Security+" — sets the cert badge colour
+  int32  count      = 3; // number of flashcard pairs to generate — default 10
+  string difficulty = 4; // "beginner" | "intermediate" | "advanced"
+}
+message FlashcardRes {
+  repeated string png_paths = 1; // absolute paths to generated PNG files in output\flashcards\
+  int32           count     = 2; // number of cards actually generated
+  bool            ok        = 3;
+}
+
+message DiagramReq {
+  string type  = 1; // "flowchart" | "sequenceDiagram" | "classDiagram" | "mindmap" | "timeline"
+  string spec  = 2; // Mermaid diagram source — generated by model via diagram_description_template
+  string title = 3; // human-readable title — used for filename and browser display
+}
+message DiagramRes {
+  string png_path      = 1; // absolute path to output\diagrams\{title}.png
+  string mermaid_src   = 2; // the validated Mermaid source that was rendered
+  bool   ok            = 3;
+  string error         = 4; // "invalid_mermaid_syntax" | "render_failed" | ...
+}
+
+message MindMapReq {
+  string topic = 1; // root concept to build the mind map from
+  string cert  = 2; // restrict graph traversal to this cert's nodes — "" = all certs
+  int32  depth = 3; // how many hops from the root to traverse in the knowledge graph — default 2
+}
+message MindMapRes {
+  string html_path = 1; // interactive HTML file in output\mindmaps\
+  string png_path  = 2; // static PNG in output\mindmaps\
+  bool   ok        = 3;
+}
+
+message ReportReq {
+  string report_type = 1; // "study_plan" | "progress" | "weekly" | "cert_readiness"
+  string cert        = 2; // target cert for the report
+  string session_id  = 3; // used when report_type = "progress" to scope to recent sessions
+}
+message ReportRes {
+  string pdf_path  = 1; // PDF in output\reports\
+  string html_path = 2; // HTML version in output\reports\ (for browser display)
+  bool   ok        = 3;
+}
+
+// ── Teaching messages ────────────────────────────────────────────────────────
+
+message QuizReq {
+  string topic      = 1; // topic to generate questions about
+  string cert       = 2; // cert context — affects question style and domain
+  int32  count      = 3; // number of questions — default 10
+  string difficulty = 4; // "beginner" | "intermediate" | "advanced"
+  string format     = 5; // "mcq_4" = 4-option MCQ with per-option explanations (default)
+}
+message QuizRes {
+  repeated QuizQuestion questions = 1;
+  bool                  ok        = 2;
+}
+message QuizQuestion {
+  string          question     = 1; // the question text
+  repeated string options      = 2; // exactly 4 answer options
+  int32           correct_index = 3; // 0-indexed position of the correct answer in options
+  repeated string explanations = 4; // one explanation per option — why it is right or wrong
+}
+
+// ── Utility messages ─────────────────────────────────────────────────────────
+
+message CalcReq {
+  string expression = 1; // e.g. "2^10 * 1024" or "log(0.5) / log(2)" — evaluated safely
+}
+message CalcRes {
+  string result = 1; // the computed result as a string
+  bool   ok     = 2;
+  string error  = 3; // "invalid_expression" | "division_by_zero" | ...
+}
+
+message ReadFileReq {
+  string path = 1; // must be inside output\ or incoming\ — permission system rejects all others (§75)
+}
+message ReadFileRes {
+  string content = 1; // file content as UTF-8 text
+  bool   ok      = 2;
+  string error   = 3; // "permission_denied" | "file_not_found" | "too_large" | ...
+}
+
+// ── Active learning messages ─────────────────────────────────────────────────
+
+message AutoFillReq {
+  string topic = 1; // topic to fill — e.g. "Sentinel Playbooks" or "Logic Apps"
+  bool   force = 2; // true = skip the "already have 10+ chunks" check and fill anyway
+}
+message AutoFillRes {
+  bool   triggered    = 1; // false if skipped (already sufficient chunks and force = false)
+  int32  chunks_added = 2; // number of new chunks ingested after auto-fill
+  string gap_id       = 3; // UUID of the gap_log entry that was filled (§56)
+  bool   ok           = 4;
+  string error        = 5;
+}

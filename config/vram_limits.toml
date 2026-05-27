@@ -1,0 +1,15 @@
+# VRAM limits for RTX 3050 (4096 MB physical).
+# Read by: services\inference\src\config.py at startup.
+# Updated for revised model sizes:
+#   Index 0 (Qwen2.5-1.5B AWQ INT4) : ~750 MB
+#   Index 1 (Phi-3.5-mini AWQ INT4) : ~1900 MB
+#   Both loaded (teaching mode)      : ~2650 MB
+
+[vram]
+hard_limit_mb           = 3700
+chat_mode_budget_mb     = 900
+teaching_mode_budget_mb = 2900
+compression_trigger_mb  = 3200
+inference_device        = "cuda:0"
+embedder_device         = "cpu"
+igpu_fallback_device    = "cpu"

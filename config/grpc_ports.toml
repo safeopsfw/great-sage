@@ -1,0 +1,17 @@
+# grpc_ports.toml — Single source of truth for all service ports.
+# Read by: Rust orchestrator (§7), Python inference (§2), Go gateway (§9).
+# All gRPC services bind to 127.0.0.1 (localhost) only — never 0.0.0.0.
+# Go HTTP/WebSocket bind to LAN IP so the browser client can connect.
+
+[ports]
+# Rust orchestrator gRPC server — receives calls from Go gateway
+rust_orchestrator = 50051
+
+# Python inference gRPC server — receives calls from Rust orchestrator
+python_inference  = 50052
+
+# Go HTTP server — serves browser UI, LAN-accessible
+go_http           = 8000
+
+# Go WebSocket server — real-time voice/chat stream to browser
+go_websocket      = 8001

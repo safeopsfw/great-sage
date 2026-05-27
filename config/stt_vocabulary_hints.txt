@@ -1,0 +1,7 @@
+﻿# IT vocabulary hints for Vosk speech recognition.
+# Add terms that Vosk frequently mishears. One term per line.
+# Populated in Part 8 (Voice System).
+CompTIA
+Azure
+Microsoft
+PowerShell

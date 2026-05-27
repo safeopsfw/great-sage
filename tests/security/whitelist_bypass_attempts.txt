@@ -1,0 +1,2 @@
+﻿# URLs that should be blocked by the whitelist enforcer.
+# Populated in Part 9 (Network, Browser and Screen).

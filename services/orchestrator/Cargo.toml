@@ -1,0 +1,49 @@
+[package]
+name = "orchestrator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# ── Async runtime ─────────────────────────────────────────────────────────────
+tokio = { version = "1.38", features = ["full"] }
+tokio-stream = "0.1"
+
+# ── gRPC (receives from Go gateway, calls Python inference) ───────────────────
+tonic = "0.11.0"
+prost = "0.12.6"
+
+# ── SQLite (knowledge.db, system.db, verification.db) ────────────────────────
+# bundled-sqlcipher (memory.db, progress.db) activated in Part 5.
+# Kept as plain bundled here so cargo build works from day one.
+rusqlite = { version = "0.31.0", features = ["bundled"] }
+
+# ── Serialisation ─────────────────────────────────────────────────────────────
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# ── Date/time (backup rotation, audit timestamps, session tracking) ───────────
+chrono = { version = "0.4", features = ["serde"] }
+
+# ── UUID (session IDs, document IDs, audit record IDs) ───────────────────────
+uuid = { version = "1.10", features = ["v4"] }
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# ── Error handling ────────────────────────────────────────────────────────────
+anyhow = "1.0"
+
+# ── Document ingestion (processes incoming\ drop zone) ───────────────────────
+# pdf-extract 0.7 requires pxfm 0.1.29 which needs edition2024 (Rust >= 1.85).
+# Re-add in Part 4 once ingestion.rs is implemented and version is resolved.
+# pdf-extract = "0.7.0"
+# docx-rs = "0.4.12"
+
+# ── FAISS (reserved — current impl calls Python service via gRPC) ─────────────
+# faiss = "0.12.1"   ← uncomment in Part 4 if direct Rust bindings are needed
+
+[build-dependencies]
+# Compiles proto\tempest.proto → Rust structs in src\grpc\generated\
+tonic-build = "0.11.0"

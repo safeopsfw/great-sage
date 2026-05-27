@@ -1,0 +1,105 @@
+# paths.toml — Central path configuration for Great Sage × Tempest
+# Read by: Rust src\config.rs, Python services\inference\config.py,
+#          Go services\gateway\config.go
+#
+# ALL services read from this file at startup — never hard-code paths in code.
+# If the project moves to a different drive, update ONLY this file.
+#
+# Windows paths use forward slashes here — Rust/Python/Go all accept them.
+# In PowerShell scripts use the raw Windows backslash form.
+
+[paths]
+# ── Root ─────────────────────────────────────────────────────────────────────
+project_root        = "D:/Project LLM/great sage"
+
+# ── Models ───────────────────────────────────────────────────────────────────
+models_dir              = "D:/Project LLM/great sage/models"
+
+# Great Sage (Index 0) — general conversation model
+model_gs_base           = "D:/Project LLM/great sage/models/great_sage/base_weights_original"
+model_gs_current        = "D:/Project LLM/great sage/models/great_sage/current"
+model_gs_backup         = "D:/Project LLM/great sage/models/great_sage/backup"
+model_gs_tokenizer      = "D:/Project LLM/great sage/models/great_sage/tokenizer"
+
+# Professor (Index 1) — IT/security certs teaching model
+model_prof_base         = "D:/Project LLM/great sage/models/professor/base_weights_original"
+model_prof_current      = "D:/Project LLM/great sage/models/professor/current"
+model_prof_backup       = "D:/Project LLM/great sage/models/professor/backup"
+model_prof_tokenizer    = "D:/Project LLM/great sage/models/professor/tokenizer"
+
+# ── HuggingFace Cache (always on D: — never fills C:) ────────────────────────
+hf_cache_dir            = "D:/Project LLM/great sage/hf_cache"
+hf_hub_dir              = "D:/Project LLM/great sage/hf_cache/hub"
+
+# ── Databases (§21–§23) ───────────────────────────────────────────────────────
+db_knowledge            = "D:/Project LLM/great sage/data/knowledge.db"
+db_memory               = "D:/Project LLM/great sage/data/memory.db"
+db_progress             = "D:/Project LLM/great sage/data/progress.db"
+db_system               = "D:/Project LLM/great sage/data/system.db"
+db_verification         = "D:/Project LLM/great sage/data/verification.db"
+
+# ── FAISS Vector Index (§16) ──────────────────────────────────────────────────
+faiss_dir               = "D:/Project LLM/great sage/faiss"
+faiss_index             = "D:/Project LLM/great sage/faiss/knowledge.index"
+faiss_metadata          = "D:/Project LLM/great sage/faiss/metadata.json"
+
+# ── Incoming Drop Zone (§10 — file ingestion) ─────────────────────────────────
+incoming_dir            = "D:/Project LLM/great sage/incoming"
+
+# ── Staging Area (ingestion pipeline intermediary) ────────────────────────────
+staging_dir             = "D:/Project LLM/great sage/staging"
+
+# ── Output (generated files — flashcards, diagrams, reports) ─────────────────
+output_dir              = "D:/Project LLM/great sage/output"
+output_flashcards       = "D:/Project LLM/great sage/output/flashcards"
+output_diagrams         = "D:/Project LLM/great sage/output/diagrams"
+output_reports          = "D:/Project LLM/great sage/output/reports"
+
+# ── Training (§67–§72) ────────────────────────────────────────────────────────
+training_dir            = "D:/Project LLM/great sage/training"
+training_raw            = "D:/Project LLM/great sage/training/raw"
+training_curated        = "D:/Project LLM/great sage/training/curated"
+training_merged         = "D:/Project LLM/great sage/training/merged"
+training_deployed       = "D:/Project LLM/great sage/training/deployed"
+training_evaluation     = "D:/Project LLM/great sage/training/evaluation"
+training_scripts        = "D:/Project LLM/great sage/training/scripts"
+
+# ── Voice (§35–§38) ───────────────────────────────────────────────────────────
+voice_dir               = "D:/Project LLM/great sage/voice"
+voice_tts_models        = "D:/Project LLM/great sage/voice/tts"
+voice_wake_word_models  = "D:/Project LLM/great sage/voice/wake_word"
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs_dir                = "D:/Project LLM/great sage/logs"
+
+# ── Backup (§23) ──────────────────────────────────────────────────────────────
+backup_dir              = "D:/Project LLM/great sage/backup"
+backup_daily            = "D:/Project LLM/great sage/backup/daily"
+backup_weekly           = "D:/Project LLM/great sage/backup/weekly"
+backup_special          = "D:/Project LLM/great sage/backup/special"
+
+# ── Tests ──────────────────────────────────────────────────────────────────────
+tests_dir               = "D:/Project LLM/great sage/tests"
+tests_eval_questions    = "D:/Project LLM/great sage/tests/evaluation_questions"
+tests_security          = "D:/Project LLM/great sage/tests/security"
+tests_latency           = "D:/Project LLM/great sage/tests/latency"
+
+# ── Config files (all in config\) ─────────────────────────────────────────────
+config_dir              = "D:/Project LLM/great sage/config"
+config_paths            = "D:/Project LLM/great sage/config/paths.toml"
+config_ports            = "D:/Project LLM/great sage/config/grpc_ports.toml"
+config_token_budget     = "D:/Project LLM/great sage/config/token_budget.toml"
+config_vram_limits      = "D:/Project LLM/great sage/config/vram_limits.toml"
+config_backup_schedule  = "D:/Project LLM/great sage/config/backup_schedule.toml"
+config_whitelist        = "D:/Project LLM/great sage/config/internet_whitelist.txt"
+config_sys_prompt_gs    = "D:/Project LLM/great sage/config/system_prompt_great_sage.txt"
+config_sys_prompt_prof  = "D:/Project LLM/great sage/config/system_prompt_professor.txt"
+
+# ── Proto & generated gRPC stubs ──────────────────────────────────────────────
+proto_file              = "D:/Project LLM/great sage/proto/tempest.proto"
+proto_go_out            = "D:/Project LLM/great sage/services/gateway/proto"
+proto_python_out        = "D:/Project LLM/great sage/services/inference/proto"
+
+# ── Tools ─────────────────────────────────────────────────────────────────────
+ffmpeg_bin              = "D:/Project LLM/great sage/tools/ffmpeg/bin/ffmpeg.exe"
+ffprobe_bin             = "D:/Project LLM/great sage/tools/ffmpeg/bin/ffprobe.exe"

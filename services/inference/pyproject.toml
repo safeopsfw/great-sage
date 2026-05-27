@@ -1,0 +1,5 @@
+﻿[project]
+name = "inference"
+version = "0.1.0"
+
+# Dependencies added in Part 2 (Inference Engine).
